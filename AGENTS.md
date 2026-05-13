@@ -42,13 +42,22 @@ manager gets stuck, the expediter generates an intervention bundle for a human.
    multi-purpose commits.
 4. Stamps require **both** the YAML entry and a verifiable git signature on
    the referenced commit.
-5. Managers **don't modify files directly**. They apply skill-proposed patches
-   after validation.
+5. Managers **don't modify packaging files directly**. They apply
+   skill-proposed patches to `repo/` after validation. (Managers do write to
+   `workpackage.yaml` — that's their job; see invariant 8.)
 6. Skills declare their scope in frontmatter (`allowed_modifications` /
    `forbidden_modifications`). The runner enforces this **after parsing the
    response, before applying anything**.
 7. A new skill should not require Python changes unless it needs a genuinely
    new output format or context type. Most additions are pure config.
+8. **Only managers update `current_stage` and `current_owner`.** Skills
+   never touch these fields. The runner never touches them. The expediter
+   never touches them. State advance is exclusively the manager's act after
+   reading the stage's stamp and applying gate policy.
+9. **Skills are observers; managers are deciders.** Skills report findings
+   into stamps (facts, comparisons, proposed patches). Managers read stamps,
+   apply policy from `resources/gates.yaml`, and decide whether to advance,
+   retry, or escalate.
 
 ## The work package
 
@@ -67,26 +76,31 @@ it.
 ### Lifecycle
 
 1. The **expediter** creates the work package from `resources/wp_template.yaml`
-   (which hardcodes the Hibiscus dev-cycle scope), commits it, and hands the
-   path to the first manager.
-2. The manager dispatches the stage's skill with the env contract above. The
-   skill emits structured output — never edits files directly.
+   (which hardcodes the Hibiscus dev-cycle scope), commits it, and dispatches
+   the manager for `current_stage`.
+2. The **manager** dispatches the stage's skill with the env contract above.
+   The skill emits structured output — it never edits files directly.
 3. The **runner** translates the skill's output into a single signed commit
    on `workpackage.yaml`: it persists any discovered values into `target.*`,
-   appends a stamp to `stamps:`, and appends an entry to `history:`.
-4. The expediter reads the new stamp, applies the gate policy from
-   `resources/gates.yaml`, and decides: **promote** (advance `current_stage`),
-   **retry**, or **escalate**. Stamp results are `verified`,
-   `verified_with_warnings`, `rejected`, or `needs_human_review`.
-5. The next manager picks up the work package, reads `current_stage` and
-   `target.*`, and either proceeds or no-ops. For example: if the detector
-   stamp says `UP_TO_DATE`, the expediter terminates the run before the
-   packager ever sees it.
+   appends a stamp to `stamps:`, and appends an entry to `history:`. The
+   runner does **not** touch `current_stage` or `current_owner`.
+4. The **manager** reads the new stamp, applies the gate policy from
+   `resources/gates.yaml`, and chooses: **advance** (write a new
+   `current_stage` and `current_owner` to the workpackage, signed commit),
+   **retry** the stage, or **escalate**. Stamp results that the gate policy
+   reasons over are `verified`, `verified_with_warnings`, `rejected`, or
+   `needs_human_review`.
+5. The expediter loops back, reads the (possibly updated) `current_stage`,
+   and dispatches the next manager — or terminates the run if `status`
+   reached a terminal value. Example: detection-stage manager reads a stamp
+   with `STATE: UP_TO_DATE`, sets `status: terminated`, and never advances
+   `current_stage`; the expediter sees `terminated` and stops.
 
-When a manager escalates, the expediter populates `intervention:` in the YAML,
-creates an `intervention/<id>` branch, and parks the run. The human clones the
-work-package repo, pushes commits back, and the expediter resolves
-clean-resume / auto-rebase / conflict.
+When a manager escalates, it writes `status: escalated`, populates
+`intervention:` in the YAML, and the expediter creates an `intervention/<id>`
+branch and parks the run. The human clones the work-package repo, pushes
+commits back, and the expediter resolves clean-resume / auto-rebase /
+conflict.
 
 ### How skills produce state changes
 
@@ -96,16 +110,20 @@ their `output_contract`:
 - **`patch`** — a unified diff. The runner validates against
   `allowed_modifications` and commits it to the `repo/` subtree on an
   `attempt/<stage>/<n>` branch.
-- **`routing`** — a decision block (e.g. detector's
-  `DECISION: NEEDS_RELEASE / UP_TO_DATE / IN_FLIGHT / NEEDS_HUMAN_REVIEW`).
-  The runner persists the carried fields into `target.*`, writes a stamp, and
-  advances or terminates state per the gate policy.
+- **`routing`** — an observation block (e.g. detector's
+  `STATE: NEW_RELEASE / NEW_PRERELEASE / UP_TO_DATE / IN_FLIGHT / UNCERTAIN`)
+  plus the facts that led to it. The runner persists the carried fields into
+  `target.*` and writes a stamp. **The runner does not advance state.** The
+  manager reads the stamp, applies gate policy, and writes the new
+  `current_stage` if it decides to advance.
 - **`report`** — a human-readable explanation. The runner writes a stamp with
-  result `needs_human_review` and populates `intervention:`.
+  result `needs_human_review`. The manager (not the runner) populates
+  `intervention:` and sets `status: escalated`.
 
 The detector skill is the reference example of a `routing` contract: it
-outputs the decision plus discovered version/source values, and the runner
-turns that into a `workpackage.yaml` commit so the next manager can see it.
+reports the upstream-vs-packaged state plus the discovered version/source
+values. The runner stamps the workpackage with that finding; the manager
+reads the stamp and decides whether to proceed to packaging.
 
 ## Skills (the main extension point)
 
