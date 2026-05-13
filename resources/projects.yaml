@@ -1,3 +1,5 @@
+# Tracked OpenStack packages. The cycle scope (Hibiscus, noble, hibiscus
+# pocket) is baked into `wp_template.yaml`, not configured here.
+
 projects:
   - package: cinder
-

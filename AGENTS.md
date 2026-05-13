@@ -59,15 +59,53 @@ State for a single pipeline run lives in **one git repo per run**, containing:
   intervention block (populated only when escalated).
 - `repo/` — the cloned Debian packaging repository as a subtree.
 
-Stage progression uses gate policies (`resources/gates.yaml`). The expediter
-reads the stamp for a completed stage and applies the gate policy to decide:
-**promote**, **retry**, or **escalate**. Stamp results are `verified`,
-`verified_with_warnings`, `rejected`, or `needs_human_review`.
+`workpackage.yaml` is the **shared state across every AI agent in the run**.
+No agent talks to another directly; they read and write through this file.
+A fresh agent invocation can fully reconstruct the state of play by reading
+it.
+
+### Lifecycle
+
+1. The **expediter** creates the work package from `resources/wp_template.yaml`
+   (which hardcodes the Hibiscus dev-cycle scope), commits it, and hands the
+   path to the first manager.
+2. The manager dispatches the stage's skill with the env contract above. The
+   skill emits structured output — never edits files directly.
+3. The **runner** translates the skill's output into a single signed commit
+   on `workpackage.yaml`: it persists any discovered values into `target.*`,
+   appends a stamp to `stamps:`, and appends an entry to `history:`.
+4. The expediter reads the new stamp, applies the gate policy from
+   `resources/gates.yaml`, and decides: **promote** (advance `current_stage`),
+   **retry**, or **escalate**. Stamp results are `verified`,
+   `verified_with_warnings`, `rejected`, or `needs_human_review`.
+5. The next manager picks up the work package, reads `current_stage` and
+   `target.*`, and either proceeds or no-ops. For example: if the detector
+   stamp says `UP_TO_DATE`, the expediter terminates the run before the
+   packager ever sees it.
 
 When a manager escalates, the expediter populates `intervention:` in the YAML,
 creates an `intervention/<id>` branch, and parks the run. The human clones the
 work-package repo, pushes commits back, and the expediter resolves
 clean-resume / auto-rebase / conflict.
+
+### How skills produce state changes
+
+Skills don't reach into the workpackage YAML. They emit structured output per
+their `output_contract`:
+
+- **`patch`** — a unified diff. The runner validates against
+  `allowed_modifications` and commits it to the `repo/` subtree on an
+  `attempt/<stage>/<n>` branch.
+- **`routing`** — a decision block (e.g. detector's
+  `DECISION: NEEDS_RELEASE / UP_TO_DATE / IN_FLIGHT / NEEDS_HUMAN_REVIEW`).
+  The runner persists the carried fields into `target.*`, writes a stamp, and
+  advances or terminates state per the gate policy.
+- **`report`** — a human-readable explanation. The runner writes a stamp with
+  result `needs_human_review` and populates `intervention:`.
+
+The detector skill is the reference example of a `routing` contract: it
+outputs the decision plus discovered version/source values, and the runner
+turns that into a `workpackage.yaml` commit so the next manager can see it.
 
 ## Skills (the main extension point)
 
@@ -104,6 +142,25 @@ PATCH ---` / `--- END PATCH ---`). New skills should mimic that style.
 **Pre-context scripts** run before the LLM call. Their stdout is injected into
 the prompt as a named context block. The LLM never executes scripts — it only
 reasons over text.
+
+### Skill invocation env contract
+
+When a manager (or the expediter) dispatches a skill, the runner executes each
+`pre_context_script` with a defined env derived from the work package's
+`target:` block. This is the single contract — scripts may rely on these names
+existing:
+
+| env var            | source                              |
+|--------------------|-------------------------------------|
+| `PACKAGE`          | `target.upstream_project`           |
+| `OPENSTACK_SERIES` | `target.openstack_series`           |
+| `UBUNTU_SERIES`    | `target.ubuntu_release`             |
+| `UCA_POCKET`       | `target.uca_pocket`                 |
+| `WORKPACKAGE_DIR`  | path to the work-package repo       |
+
+Each script emits a `=== <block_name> ===` header followed by key/value lines,
+which the runner injects into the prompt under that block name. The detector
+skill is the reference implementation.
 
 Adding a new skill: `cp -r resources/templates/skill skills/my-new-thing`,
 edit `SKILL.md`. No Python changes unless a genuinely new output contract or
@@ -251,6 +308,9 @@ step 3 (`o7k/workpackage.py`).
 - **Don't add Python where YAML works.** Routing maps, model tiers, gate
   policies, package lists — all data, all in `resources/`.
 - **Don't build the cron / dashboard yet.** Out of scope.
+- **Stable OpenStack releases are out of scope** for now. Only the current
+  dev cycle (`openstack_series` in `resources/projects.yaml`, presently
+  `hibiscus`) is tracked. No backports.
 
 ## Reference
 

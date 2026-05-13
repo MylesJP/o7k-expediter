@@ -5,7 +5,10 @@ current_owner: expeditor
 
 target:
   upstream_project: "{{PROJECT}}"
-  upstream_version: "{{VERSION}}"
+  upstream_version: ""                # Empty at creation; detector fills this in
+  # Cycle scope is hardcoded — Hibiscus dev cycle only. Stable releases out of
+  # scope. Bump these three together when promoting to the next cycle.
+  openstack_series: hibiscus
   ubuntu_release: noble
   uca_pocket: hibiscus
   trigger:
