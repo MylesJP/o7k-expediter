@@ -23,6 +23,7 @@ import re
 import shutil
 import subprocess
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 
 
@@ -57,6 +58,7 @@ def main() -> int:
     ubuntu_series = os.environ.get("UBUNTU_SERIES", "noble").strip()
     workpackage_dir = os.environ.get("WORKPACKAGE_DIR", "").strip()
     deb_dir_override = os.environ.get("DEB_DIR", "").strip()
+    testsrc_override = os.environ.get("TESTSRC", "").strip()
 
     if not package:
         emit("autopkgtest_result", status="error", error="PACKAGE env var not set")
@@ -76,12 +78,25 @@ def main() -> int:
     else:
         deb_dir = Path.home() / "o7k-build-output" / "apt-repo"
 
-    debs = list(deb_dir.glob("*.deb")) if deb_dir.exists() else []
+    debs = list(deb_dir.rglob("*.deb")) if deb_dir.exists() else []
     if not debs:
         emit(
             "autopkgtest_result",
             status="error",
             error=f"no .deb files found in {deb_dir}",
+        )
+        return 1
+
+    if testsrc_override:
+        testsrc = Path(testsrc_override)
+    else:
+        dscs = sorted(deb_dir.rglob(f"{package}_*.dsc")) if deb_dir.exists() else []
+        testsrc = dscs[-1] if dscs else Path()
+    if not testsrc:
+        emit(
+            "autopkgtest_result",
+            status="error",
+            error=f"no source package found in {deb_dir}; set TESTSRC to a source tree or .dsc",
         )
         return 1
 
@@ -93,11 +108,12 @@ def main() -> int:
         )
         return 1
 
-    results_dir = deb_dir.parent / "autopkgtest-results"
+    stamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
+    results_dir = deb_dir.parent / f"autopkgtest-results-{stamp}"
     results_dir.mkdir(parents=True, exist_ok=True)
 
     deb_args = [str(d) for d in sorted(debs)]
-    cmd = deb_args + ["-o", str(results_dir), "--", "lxd", f"ubuntu:{ubuntu_series}"]
+    cmd = deb_args + [str(testsrc), "-o", str(results_dir), "--", "lxd", f"ubuntu:{ubuntu_series}"]
 
     try:
         result = subprocess.run(

@@ -50,7 +50,7 @@ def find_debs(apt_repo: Path, package: str) -> list[str]:
     python_binary = f"python3-{package.removeprefix('python-')}"
     return [
         str(p)
-        for p in apt_repo.glob("*.deb")
+        for p in apt_repo.rglob("*.deb")
         if package in p.name or f"python3-{package}" in p.name or python_binary in p.name
     ]
 
@@ -58,9 +58,10 @@ def find_debs(apt_repo: Path, package: str) -> list[str]:
 def classify_failure(log_tail: str) -> str:
     checks = [
         (r"dpkg-checkbuilddeps.*Unmet build dependencies", "missing-build-dep"),
-        (r"(gbp pq|quilt push|Hunk FAILED|patch.*failed)", "patch-apply-fail"),
+        (r"(gbp pq.*(fail|error)|quilt push.*(fail|error)|Hunk FAILED|\bpatch\b.*failed)", "patch-apply-fail"),
         (r"pybuild --clean.*returned exit code", "pybuild-clean-fail"),
         (r"Error creating chroot session", "sbuild-chroot-error"),
+        (r"Failed to execute chroot-setup-commands", "sbuild-chroot-error"),
         (r"(make\[.*\].*Error|gcc.*error:|g\+\+.*error:)", "compile-error"),
     ]
     for pattern, cls in checks:
@@ -135,6 +136,9 @@ def main() -> int:
         "uv", "run", "packastack", "build", package,
         "--ubuntu-series", ubuntu_series,
     ]
+    if openstack_series:
+        cmd.extend(["--target", openstack_series])
+    cmd.append("--archive-deps")
     env = {**os.environ, "UV_PROJECT_ENVIRONMENT": str(VENV)}
 
     try:
