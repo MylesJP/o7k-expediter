@@ -50,19 +50,24 @@ Apply in order. The first matching rule wins. These determine the `STATE`
 value you emit — they are categorical findings about the inputs, not policy
 decisions.
 
-1. If `upstream_release.version` is missing or marked unknown — emit
+1. If the upstream deliverable file exists but contains **no releases at all**
+   (empty or missing `releases:` list) — emit `NO_RELEASES`. This is a normal
+   state early in a dev cycle before the first milestone. Do not treat it as
+   an error or as `UNCERTAIN`.
+2. If `upstream_release.version` is missing or marked unknown **for any other
+   reason** (network error, malformed data, unexpected format) — emit
    `UNCERTAIN`. Do not guess.
-2. If any open merge proposal already targets the upstream version (or a
+3. If any open merge proposal already targets the upstream version (or a
    higher version) — emit `IN_FLIGHT`.
-3. If the upstream version equals the packaged version — emit `UP_TO_DATE`.
-4. If the upstream version is strictly greater than both the packaged version
+4. If the upstream version equals the packaged version — emit `UP_TO_DATE`.
+5. If the upstream version is strictly greater than both the packaged version
    and any in-flight proposal version, **and** the new version is a stable
    release (no `bN`/`rcN`/`.0bN` suffix, or matches the OpenStack final-cycle
    pattern) — emit `NEW_RELEASE`.
-5. If the upstream version is strictly greater but is a pre-release
+6. If the upstream version is strictly greater but is a pre-release
    (`bN`/`rcN`/etc.) — emit `NEW_PRERELEASE`. Whether to package pre-releases
    is the manager's policy call, not yours.
-6. If the packaged version is somehow newer than upstream, or versions cannot
+7. If the packaged version is somehow newer than upstream, or versions cannot
    be ordered confidently (unusual suffixes, epoch mismatch, malformed
    strings) — emit `UNCERTAIN`.
 
@@ -78,7 +83,7 @@ runner persists these fields into the workpackage stamp; the manager reads
 the stamp and decides what to do.
 
 ```
-STATE: NEW_RELEASE | NEW_PRERELEASE | UP_TO_DATE | IN_FLIGHT | UNCERTAIN
+STATE: NEW_RELEASE | NEW_PRERELEASE | UP_TO_DATE | IN_FLIGHT | NO_RELEASES | UNCERTAIN
 PACKAGE: <name>
 OPENSTACK_SERIES: <series>
 UBUNTU_SERIES: <series>

@@ -1,0 +1,24 @@
+# Gate policies per pipeline stage.
+#
+# Each stage lists the stamp `result` values that allow the manager to advance
+# to the next stage.  The manager reads the latest stamp for the stage and
+# checks its result against `allow_advance`.
+#
+# If the result is not in `allow_advance`, the manager applies `on_reject`.
+
+detection:
+  allow_advance:
+    - verified
+  on_reject: escalate
+
+packaging:
+  allow_advance:
+    - verified
+    - verified_with_warnings
+  on_reject: retry       # manager retries with a skill before escalating
+
+qa:
+  allow_advance:
+    - verified
+    - verified_with_warnings
+  on_reject: escalate

@@ -1,0 +1,6 @@
+# Model tiers for OpenRouter.
+# The runner picks a tier based on the skill's `model_tier` frontmatter field.
+# Update model IDs here when switching providers or upgrading.
+
+cheap:  qwen/qwen3.6-plus
+heavy:  qwen/qwen3.6-plus

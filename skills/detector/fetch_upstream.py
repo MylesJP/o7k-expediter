@@ -70,8 +70,8 @@ def main() -> int:
             package=package,
             openstack_series=series,
             source_url=url,
-            version="unknown",
-            error="no releases in deliverable",
+            version="none",
+            note="deliverable file exists but contains no releases yet",
         )
         return 0
 

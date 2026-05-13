@@ -1,0 +1,12 @@
+# Failure-class → skill routing map.
+#
+# When a deterministic tool (e.g. packastack) fails, the manager classifies
+# the failure and looks up which skill to dispatch here.
+# The key is the failure_class string; the value is the skill directory name.
+
+patch_fuzz:          patch-fuzz-resolver
+missing_build_dep:   missing-build-dep
+dh_error:            build-patch
+cmake_error:         build-patch
+test_failure:        build-patch
+unknown:             build-failure-triager
