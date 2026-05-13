@@ -20,6 +20,7 @@ forbidden_modifications:
   - "debian/changelog"
 pre_context_scripts:
   - run_build.py
+pre_context_timeout_seconds: 7200
 model_tier: heavy
 confidence_floor: 0.6
 handles_failure_classes:

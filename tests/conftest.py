@@ -29,7 +29,10 @@ def _git(repo: Path, *args: str) -> None:
         "GIT_COMMITTER_EMAIL": "test@example.invalid",
     }
     subprocess.run(
-        ["git", "-C", str(repo), *args], check=True, env=env, capture_output=True
+        ["git", "-c", "commit.gpgsign=false", "-C", str(repo), *args],
+        check=True,
+        env=env,
+        capture_output=True,
     )
 
 

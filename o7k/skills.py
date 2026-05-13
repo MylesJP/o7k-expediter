@@ -59,6 +59,7 @@ def _run_pre_context_scripts(
     skill_dir: Path,
     scripts: list[str],
     env: dict[str, str],
+    timeout: int = 30,
 ) -> dict[str, str]:
     """Run each pre-context script and capture its output blocks.
 
@@ -83,7 +84,7 @@ def _run_pre_context_scripts(
             capture_output=True,
             text=True,
             env=full_env,
-            timeout=30,
+            timeout=timeout,
             cwd=skill_dir,
         )
 
@@ -160,7 +161,8 @@ def run(skill_name: str, env: dict[str, str]) -> str:
 
     # Run pre-context scripts
     scripts = frontmatter.get("pre_context_scripts") or []
-    context_blocks = _run_pre_context_scripts(skill_dir, scripts, env)
+    timeout = int(frontmatter.get("pre_context_timeout_seconds", 30))
+    context_blocks = _run_pre_context_scripts(skill_dir, scripts, env, timeout=timeout)
 
     # Assemble prompt
     prompt = _assemble_prompt(prompt_body, context_blocks, env)

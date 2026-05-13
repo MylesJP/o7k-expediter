@@ -84,7 +84,7 @@ def _git_commit(repo: Path, message: str) -> None:
         check=True, env=env, capture_output=True,
     )
     subprocess.run(
-        ["git", "-C", str(repo), "commit", "-q", "-m", message],
+        ["git", "-c", "commit.gpgsign=false", "-C", str(repo), "commit", "-q", "-m", message],
         check=True, env=env, capture_output=True,
     )
 

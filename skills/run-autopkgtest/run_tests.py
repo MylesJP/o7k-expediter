@@ -8,7 +8,7 @@ UBUNTU_SERIES, and WORKPACKAGE_DIR from the environment, locates the
 Inputs (env):
   PACKAGE           e.g. "cinder"
   UBUNTU_SERIES     e.g. "noble"
-  WORKPACKAGE_DIR   path to work-package repo (locates build-output dir)
+  WORKPACKAGE_DIR   path to work-package repo (locates artifact dirs)
   DEB_DIR           optional override: explicit path to dir containing debs
 
 Output (stdout):
@@ -53,6 +53,11 @@ def parse_autopkgtest_output(output: str) -> dict:
     return results
 
 
+def newest(path: Path, pattern: str) -> Path | None:
+    matches = sorted(path.rglob(pattern), key=lambda p: p.stat().st_mtime)
+    return matches[-1] if matches else None
+
+
 def main() -> int:
     package = os.environ.get("PACKAGE", "").strip()
     ubuntu_series = os.environ.get("UBUNTU_SERIES", "noble").strip()
@@ -63,6 +68,9 @@ def main() -> int:
     if not package:
         emit("autopkgtest_result", status="error", error="PACKAGE env var not set")
         return 2
+    if not workpackage_dir:
+        emit("autopkgtest_result", status="error", error="WORKPACKAGE_DIR env var not set")
+        return 2
 
     emit(
         "package_identity",
@@ -70,13 +78,14 @@ def main() -> int:
         ubuntu_series=ubuntu_series,
     )
 
+    workpackage = Path(workpackage_dir)
+    packastack_artifacts = workpackage / "artifacts" / "packastack"
+
     # Locate debs
     if deb_dir_override:
         deb_dir = Path(deb_dir_override)
-    elif workpackage_dir:
-        deb_dir = Path(workpackage_dir).parent / "build-output" / "apt-repo"
     else:
-        deb_dir = Path.home() / "o7k-build-output" / "apt-repo"
+        deb_dir = packastack_artifacts / "apt-repo"
 
     debs = list(deb_dir.rglob("*.deb")) if deb_dir.exists() else []
     if not debs:
@@ -90,8 +99,11 @@ def main() -> int:
     if testsrc_override:
         testsrc = Path(testsrc_override)
     else:
-        dscs = sorted(deb_dir.rglob(f"{package}_*.dsc")) if deb_dir.exists() else []
-        testsrc = dscs[-1] if dscs else Path()
+        # Prefer Packastack's complete build-output bundle. The apt repo pool
+        # may omit companion files referenced by the .dsc, such as .asc files.
+        testsrc = newest(packastack_artifacts / "build", f"{package}_*.dsc")
+        if testsrc is None:
+            testsrc = newest(deb_dir, f"{package}_*.dsc") if deb_dir.exists() else None
     if not testsrc:
         emit(
             "autopkgtest_result",
@@ -109,7 +121,7 @@ def main() -> int:
         return 1
 
     stamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
-    results_dir = deb_dir.parent / f"autopkgtest-results-{stamp}"
+    results_dir = workpackage / "artifacts" / "autopkgtest" / stamp
     results_dir.mkdir(parents=True, exist_ok=True)
 
     deb_args = [str(d) for d in sorted(debs)]

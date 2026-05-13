@@ -17,6 +17,7 @@ forbidden_modifications:
   - "*"
 pre_context_scripts:
   - run_tests.py
+pre_context_timeout_seconds: 3600
 model_tier: cheap
 confidence_floor: 0.7
 handles_failure_classes: []

@@ -12,7 +12,7 @@ Inputs (env):
   PACKAGE           e.g. "cinder"
   UBUNTU_SERIES     e.g. "noble"
   OPENSTACK_SERIES  e.g. "hibiscus"
-  WORKPACKAGE_DIR   path to work-package repo (output dir derived from here)
+  WORKPACKAGE_DIR   path to work-package repo (artifacts stored under here)
 
 Output (stdout): key/value blocks consumed by the skill runner.
 """
@@ -26,7 +26,6 @@ import sys
 from pathlib import Path
 
 PACKASTACK_DIR = Path.home() / "packastack"
-VENV = Path.home() / ".venv-packastack"
 
 
 def emit(block: str, **fields: str) -> None:
@@ -80,27 +79,19 @@ def main() -> int:
         emit("build_result", status="error", error="PACKAGE env var not set")
         return 2
 
-    # Derive output dir — sits next to the work-package repo or uses default
-    if workpackage_dir:
-        output_dir = Path(workpackage_dir).parent / "build-output"
-    else:
-        output_dir = Path.home() / "o7k-build-output"
+    if not workpackage_dir:
+        emit("build_result", status="error", error="WORKPACKAGE_DIR env var not set")
+        return 2
 
+    workpackage = Path(workpackage_dir)
+    output_dir = workpackage / "artifacts" / "packastack"
+    tool_home = output_dir / "home"
+    venv = output_dir / "venv"
     apt_repo = output_dir / "apt-repo"
     build_root = output_dir / "build"
 
-    # Ensure git identity for gbp commits
-    subprocess.run(
-        ["git", "config", "--global", "user.email", "packastack@build.local"],
-        check=False,
-    )
-    subprocess.run(
-        ["git", "config", "--global", "user.name", "Packastack Build"],
-        check=False,
-    )
-
     # Write packastack config pointing to our output dir
-    cfg_dir = Path.home() / ".config" / "packastack"
+    cfg_dir = tool_home / ".config" / "packastack"
     cfg_dir.mkdir(parents=True, exist_ok=True)
     (cfg_dir / "config.yaml").write_text(
         f"""paths:
@@ -132,6 +123,45 @@ def main() -> int:
         )
         return 1
 
+    env = {
+        **os.environ,
+        "HOME": str(tool_home),
+        "UV_PROJECT_ENVIRONMENT": str(venv),
+        "GIT_AUTHOR_NAME": "Packastack Build",
+        "GIT_AUTHOR_EMAIL": "packastack@build.local",
+        "GIT_COMMITTER_NAME": "Packastack Build",
+        "GIT_COMMITTER_EMAIL": "packastack@build.local",
+    }
+
+    try:
+        init_result = subprocess.run(
+            ["uv", "run", "packastack", "init"],
+            cwd=str(PACKASTACK_DIR),
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=1800,
+        )
+    except subprocess.TimeoutExpired:
+        emit("build_result", status="error", stage="setup",
+             error="packastack init timed out after 1800s")
+        return 1
+    except FileNotFoundError:
+        emit("build_result", status="error", stage="setup",
+             error="uv not found; install via: snap install astral-uv --classic")
+        return 1
+
+    if init_result.returncode != 0:
+        init_output = init_result.stdout + init_result.stderr
+        emit(
+            "build_result",
+            status="error",
+            stage="setup",
+            error="packastack init failed",
+            packastack_init_output_tail="\n".join(init_output.splitlines()[-30:]),
+        )
+        return 1
+
     cmd = [
         "uv", "run", "packastack", "build", package,
         "--ubuntu-series", ubuntu_series,
@@ -139,7 +169,6 @@ def main() -> int:
     if openstack_series:
         cmd.extend(["--target", openstack_series])
     cmd.append("--archive-deps")
-    env = {**os.environ, "UV_PROJECT_ENVIRONMENT": str(VENV)}
 
     try:
         result = subprocess.run(

@@ -228,7 +228,14 @@ def run(package_name: str | None = None) -> None:
     print(f"\n[manager] ✓ {state} detected: {package} {upstream_version}")
 
     # Create Work Package
-    wp_path = workpackage.create_wp(package, upstream_version, source_url)
+    wp_path = workpackage.create_wp(
+        package,
+        upstream_version,
+        source_url,
+        openstack_series=project.get("openstack_series", "hibiscus"),
+        ubuntu_release=project.get("ubuntu_series", "noble"),
+        uca_pocket=project.get("uca_pocket", project.get("openstack_series", "hibiscus")),
+    )
     print(f"[manager] Work Package created: {wp_path.name}")
     wp = workpackage.load(wp_path)
 

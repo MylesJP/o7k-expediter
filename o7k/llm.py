@@ -17,6 +17,7 @@ import yaml
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _MODELS_PATH = _REPO_ROOT / "resources" / "models.yaml"
+_ENV_PATH = _REPO_ROOT / ".env"
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
@@ -26,13 +27,28 @@ def _load_models() -> dict[str, str]:
     return yaml.safe_load(_MODELS_PATH.read_text())
 
 
+def _env_value(name: str) -> str:
+    value = os.environ.get(name, "").strip()
+    if value or not _ENV_PATH.exists():
+        return value
+
+    for raw in _ENV_PATH.read_text().splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, env_value = line.split("=", 1)
+        if key.strip() == name:
+            return env_value.strip().strip('"').strip("'")
+    return ""
+
+
 def call(prompt: str, *, model_tier: str = "cheap", temperature: float = 0.2) -> str:
     """Send *prompt* to OpenRouter and return the assistant response text.
 
     *model_tier* is looked up in resources/models.yaml (cheap or heavy).
     Raises RuntimeError on API errors.
     """
-    api_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
+    api_key = _env_value("OPENROUTER_API_KEY")
     if not api_key:
         raise RuntimeError(
             "OPENROUTER_API_KEY not set. Export it or add to .env."

@@ -48,6 +48,9 @@ def create_wp(
     upstream_version: str,
     source_url: str,
     *,
+    openstack_series: str | None = None,
+    ubuntu_release: str | None = None,
+    uca_pocket: str | None = None,
     base_dir: Path | None = None,
 ) -> Path:
     """Create a new workpackage.yaml from the template. Returns path to the file."""
@@ -69,6 +72,12 @@ def create_wp(
 
     wp_data = yaml.safe_load(rendered)
     wp_data["target"]["upstream_version"] = upstream_version
+    if openstack_series:
+        wp_data["target"]["openstack_series"] = openstack_series
+    if ubuntu_release:
+        wp_data["target"]["ubuntu_release"] = ubuntu_release
+    if uca_pocket:
+        wp_data["target"]["uca_pocket"] = uca_pocket
 
     wp_path = wp_dir / WP_FILENAME
     wp_path.write_text(yaml.dump(wp_data, default_flow_style=False, sort_keys=False))
