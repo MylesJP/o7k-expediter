@@ -3,3 +3,6 @@
 
 projects:
   - package: cinder
+  - package: python-novaclient
+    openstack_series: gazpacho
+    ubuntu_series: noble

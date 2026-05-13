@@ -59,7 +59,7 @@ def _run_pre_context_scripts(
     skill_dir: Path,
     scripts: list[str],
     env: dict[str, str],
-    timeout: int = 30,
+    timeout: int = 3600,  # pre-context scripts may run full builds
 ) -> dict[str, str]:
     """Run each pre-context script and capture its output blocks.
 

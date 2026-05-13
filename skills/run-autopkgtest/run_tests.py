@@ -79,13 +79,12 @@ def main() -> int:
     )
 
     workpackage = Path(workpackage_dir)
-    packastack_artifacts = workpackage / "artifacts" / "packastack"
 
-    # Locate debs
+    # Locate debs — artifacts land inside the workpackage dir (LXD build pulls them here)
     if deb_dir_override:
         deb_dir = Path(deb_dir_override)
     else:
-        deb_dir = packastack_artifacts / "apt-repo"
+        deb_dir = workpackage / "build-output" / "apt-repo"
 
     debs = list(deb_dir.rglob("*.deb")) if deb_dir.exists() else []
     if not debs:
