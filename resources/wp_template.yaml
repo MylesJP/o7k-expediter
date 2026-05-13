@@ -1,9 +1,8 @@
 id: "{{WP_ID}}"
 status: in_progress             # Default start state
 current_stage: detection        # Default start stage
-current_owner: expeditor        # The Expeditor starts the journey
+current_owner: expeditor
 
-# The Identity (Filled by the Sentinel)
 target:
   upstream_project: "{{PROJECT}}"
   upstream_version: "{{VERSION}}"
@@ -14,10 +13,9 @@ target:
     detected: "{{TIMESTAMP}}"
     source: "{{SOURCE_URL}}"
 
-# The "Audit Trail" (Starts empty)
+# Audit trail
 stamps: []    # Agents will append objects here
 history: []   # Agents will append event logs here
 
-# The "Blockers"
 open_issues: []
 intervention: null
