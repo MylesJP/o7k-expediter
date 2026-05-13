@@ -1,0 +1,23 @@
+id: "{{WP_ID}}"
+status: in_progress             # Default start state
+current_stage: detection        # Default start stage
+current_owner: expeditor        # The Expeditor starts the journey
+
+# The Identity (Filled by the Sentinel)
+target:
+  upstream_project: "{{PROJECT}}"
+  upstream_version: "{{VERSION}}"
+  ubuntu_release: noble
+  uca_pocket: hibiscus
+  trigger:
+    type: upstream_release
+    detected: "{{TIMESTAMP}}"
+    source: "{{SOURCE_URL}}"
+
+# The "Audit Trail" (Starts empty)
+stamps: []    # Agents will append objects here
+history: []   # Agents will append event logs here
+
+# The "Blockers"
+open_issues: []
+intervention: null
