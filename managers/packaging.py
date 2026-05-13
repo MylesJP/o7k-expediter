@@ -25,6 +25,7 @@ sys.path.insert(0, str(REPO_ROOT))
 from o7k import skills, workpackage  # noqa: E402
 
 PROJECTS_PATH = REPO_ROOT / "resources" / "projects.yaml"
+LOG_WIDTH = 78
 
 # ---------------------------------------------------------------------------
 # Parsing helpers
@@ -37,6 +38,51 @@ def _field(text: str, key: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Logging helpers
+# ---------------------------------------------------------------------------
+
+def _log(message: str = "") -> None:
+    print(message, flush=True)
+
+
+def _section(title: str, detail: str = "") -> None:
+    _log()
+    _log("=" * LOG_WIDTH)
+    line = f"[manager] {title.upper()}"
+    if detail:
+        line += f" | {detail}"
+    _log(line)
+    _log("-" * LOG_WIDTH)
+
+
+def _info(label: str, value: str | Path) -> None:
+    _log(f"  {label:<14} {value}")
+
+
+def _ok(message: str) -> None:
+    _log(f"[manager] OK    {message}")
+
+
+def _warn(message: str) -> None:
+    _log(f"[manager] WARN  {message}")
+
+
+def _error(message: str) -> None:
+    _log(f"[manager] ERROR {message}")
+
+
+def _response(title: str, text: str) -> None:
+    _log()
+    _log(f"[{title}]")
+    body = text.strip()
+    if not body:
+        _log("  (empty response)")
+        return
+    for line in body.splitlines():
+        _log(f"  {line}" if line else "")
+
+
+# ---------------------------------------------------------------------------
 # Stage handlers
 # ---------------------------------------------------------------------------
 
@@ -46,7 +92,7 @@ def _run_detection(project: dict) -> tuple[str, str, str, str]:
     openstack_series = project.get("openstack_series", "hibiscus")
     ubuntu_series = project.get("ubuntu_series", "noble")
 
-    print(f"\n[manager] ── DETECTION ── {package} ({openstack_series}/{ubuntu_series})")
+    _section("detection", f"{package} ({openstack_series}/{ubuntu_series})")
     env = {
         "PACKAGE": package,
         "OPENSTACK_SERIES": openstack_series,
@@ -54,7 +100,7 @@ def _run_detection(project: dict) -> tuple[str, str, str, str]:
     }
 
     response = skills.run("detector", env)
-    print("[detector response]\n" + response)
+    _response("detector response", response)
 
     state = _field(response, "STATE")
     upstream_version = _field(response, "UPSTREAM_VERSION")
@@ -79,11 +125,13 @@ def _run_packaging(wp: dict, wp_path: Path) -> bool:
     package = wp["target"]["upstream_project"]
     version = wp["target"]["upstream_version"]
 
-    print(f"\n[manager] ── PACKAGING ── {package} {version}")
+    _section("packaging", f"{package} {version}")
 
     env = _build_env(wp, wp_path)
+    _info("workpackage", wp_path.parent)
+    _info("series", f"{env['OPENSTACK_SERIES']} / {env['UBUNTU_SERIES']}")
     response = skills.run("packastack-build", env)
-    print("[packastack-build response]\n" + response)
+    _response("packastack-build response", response)
 
     status = _field(response, "STATUS")
     explanation = _field(response, "EXPLANATION")
@@ -104,6 +152,7 @@ def _run_packaging(wp: dict, wp_path: Path) -> bool:
             "deb_paths": deb_paths,
             "apt_repo": apt_repo,
         }
+        _ok(f"packastack build verified ({len(artifacts)} artifact(s))")
         return True
 
     # Build failed — record the failure details
@@ -118,7 +167,7 @@ def _run_packaging(wp: dict, wp_path: Path) -> bool:
 
     if patch_filename and patch_filename != "NO_PATCH":
         # Skill proposed a patch — for now we log it, future: apply + retry
-        print(f"[manager] Skill proposed patch: {patch_filename}")
+        _warn(f"skill proposed patch: {patch_filename}")
         workpackage.add_stamp(
             wp, wp_path,
             stage="packaging",
@@ -133,21 +182,23 @@ def _run_packaging(wp: dict, wp_path: Path) -> bool:
             stderr_excerpt=diagnosis,
         )
 
+    _error(f"packaging did not pass ({failure_class or 'unknown failure'})")
     return False
 
 
 def _run_qa(wp: dict, wp_path: Path) -> bool:
     """Run the run-autopkgtest skill. Returns True on pass."""
-    print(f"\n[manager] ── QA ──")
+    _section("qa")
 
     env = _build_env(wp, wp_path)
     # Pass DEB_DIR if we know it from the build stage
     build_output = wp.get("_build_output", {})
     if build_output.get("apt_repo"):
         env["DEB_DIR"] = build_output["apt_repo"]
+        _info("apt repo", env["DEB_DIR"])
 
     response = skills.run("run-autopkgtest", env)
-    print("[run-autopkgtest response]\n" + response)
+    _response("run-autopkgtest response", response)
 
     result = _field(response, "AUTOPKGTEST_RESULT")
     explanation = _field(response, "EXPLANATION")
@@ -167,6 +218,7 @@ def _run_qa(wp: dict, wp_path: Path) -> bool:
             result="verified",
             detail=detail,
         )
+        _ok(f"autopkgtest passed ({tests_passed}/{tests_total})")
         return True
     elif result == "SKIP":
         workpackage.add_stamp(
@@ -175,6 +227,7 @@ def _run_qa(wp: dict, wp_path: Path) -> bool:
             result="verified_with_warnings",
             detail=detail,
         )
+        _warn(f"autopkgtest skipped ({tests_skipped}/{tests_total})")
         return True
     else:
         workpackage.escalate(
@@ -182,6 +235,7 @@ def _run_qa(wp: dict, wp_path: Path) -> bool:
             summary=f"QA failed: {detail}",
             stage="qa",
         )
+        _error(f"autopkgtest did not pass ({result or 'unknown result'})")
         return False
 
 
@@ -193,7 +247,7 @@ def _advance(wp: dict, wp_path: Path, new_stage: str, owner: str = "manager") ->
     wp["current_stage"] = new_stage
     wp["current_owner"] = owner
     workpackage.save(wp, wp_path, f"advance(stage): {new_stage}")
-    print(f"[manager] ✓ advanced → current_stage={new_stage}")
+    _ok(f"advanced to stage={new_stage}")
     return workpackage.load(wp_path)
 
 
@@ -209,7 +263,7 @@ def run(package_name: str | None = None) -> None:
     if package_name:
         projects = [p for p in projects if p["package"] == package_name]
     if not projects:
-        print(f"[manager] No project found for {package_name!r}")
+        _error(f"no project found for {package_name!r}")
         sys.exit(1)
 
     project = projects[0]
@@ -220,12 +274,12 @@ def run(package_name: str | None = None) -> None:
 
     if state not in ("NEW_RELEASE", "NEW_PRERELEASE"):
         if state == "NO_RELEASES":
-            print(f"\n[manager] STATE=NO_RELEASES — no upstream releases yet for this series. {explanation}")
+            _warn(f"STATE=NO_RELEASES; no upstream releases yet. {explanation}")
         else:
-            print(f"\n[manager] STATE={state} — nothing to do. {explanation}")
+            _warn(f"STATE={state}; nothing to do. {explanation}")
         return
 
-    print(f"\n[manager] ✓ {state} detected: {package} {upstream_version}")
+    _ok(f"{state} detected: {package} {upstream_version}")
 
     # Create Work Package
     wp_path = workpackage.create_wp(
@@ -236,7 +290,7 @@ def run(package_name: str | None = None) -> None:
         ubuntu_release=project.get("ubuntu_series", "noble"),
         uca_pocket=project.get("uca_pocket", project.get("openstack_series", "hibiscus")),
     )
-    print(f"[manager] Work Package created: {wp_path.name}")
+    _info("workpackage", wp_path)
     wp = workpackage.load(wp_path)
 
     # Write detection stamp
@@ -253,7 +307,7 @@ def run(package_name: str | None = None) -> None:
 
     # ── Stage 2: Packaging (packastack-build skill) ─────────────────────────
     if not _run_packaging(wp, wp_path):
-        print("\n[manager] ✗ Packaging failed — escalated")
+        _error("packaging failed; workpackage escalated")
         return
 
     wp = workpackage.load(wp_path)
@@ -261,7 +315,7 @@ def run(package_name: str | None = None) -> None:
 
     # ── Stage 3: QA (run-autopkgtest skill) ─────────────────────────────────
     if not _run_qa(wp, wp_path):
-        print("\n[manager] ✗ QA failed — escalated")
+        _error("QA failed; workpackage escalated")
         return
 
     wp = workpackage.load(wp_path)
@@ -271,8 +325,9 @@ def run(package_name: str | None = None) -> None:
     wp["current_stage"] = "done"
     wp["current_owner"] = "none"
     workpackage.save(wp, wp_path, "done: pipeline completed successfully")
-    print(f"\n[manager] ✓ Pipeline complete — status=done")
-    print(f"[manager] Work Package: {wp_path}")
+    _section("complete", package)
+    _ok("pipeline complete; status=done")
+    _info("workpackage", wp_path)
 
 
 if __name__ == "__main__":
