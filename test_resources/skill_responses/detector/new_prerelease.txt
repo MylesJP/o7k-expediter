@@ -1,0 +1,10 @@
+STATE: NEW_PRERELEASE
+PACKAGE: cinder
+OPENSTACK_SERIES: hibiscus
+UBUNTU_SERIES: noble
+UPSTREAM_VERSION: 31.1.0.0b1
+PACKAGED_VERSION: 31.0.0
+IN_FLIGHT_VERSION: none
+SOURCE_URL: https://opendev.org/openstack/releases/raw/branch/master/deliverables/hibiscus/cinder.yaml
+EXPLANATION: The newest upstream entry is 31.1.0.0b1, a beta of the next cycle. No stable release has been cut yet. Reporting as pre-release; the manager decides whether to package betas.
+CONFIDENCE: 0.92

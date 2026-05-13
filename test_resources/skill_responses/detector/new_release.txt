@@ -1,0 +1,10 @@
+STATE: NEW_RELEASE
+PACKAGE: cinder
+OPENSTACK_SERIES: hibiscus
+UBUNTU_SERIES: noble
+UPSTREAM_VERSION: 31.0.1
+PACKAGED_VERSION: 31.0.0
+IN_FLIGHT_VERSION: none
+SOURCE_URL: https://opendev.org/openstack/releases/raw/branch/master/deliverables/hibiscus/cinder.yaml
+EXPLANATION: Upstream Hibiscus shows cinder 31.0.1. The packaged version on the ubuntu-openstack-dev master branch is 31.0.0 and there are no open merge proposals targeting a newer version. Clean stable bump.
+CONFIDENCE: 0.95

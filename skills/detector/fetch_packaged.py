@@ -15,14 +15,18 @@ from __future__ import annotations
 
 import os
 import re
+import subprocess
 import sys
+import tempfile
 import urllib.error
 import urllib.request
+from pathlib import Path
 
 CHANGELOG_URL = (
-    "https://git.launchpad.net/~ubuntu-openstack-dev/+git/{package}/"
+    "https://git.launchpad.net/~ubuntu-openstack-dev/ubuntu/+source/{package}/"
     "plain/debian/changelog"
 )
+GIT_URL = "https://git.launchpad.net/~ubuntu-openstack-dev/ubuntu/+source/{package}"
 
 # Standard Debian changelog top line: "<pkg> (<version>) <suite>; urgency=<u>"
 TOP_LINE = re.compile(r"^([^\s]+)\s+\(([^)]+)\)\s+(\S+);")
@@ -43,6 +47,32 @@ def strip_revision(version: str) -> str:
     return v
 
 
+def fetch_changelog_from_git(package: str) -> str | None:
+    with tempfile.TemporaryDirectory(prefix=f"o7k-{package}-") as tmp:
+        repo = Path(tmp) / "repo"
+        result = subprocess.run(
+            [
+                "git",
+                "clone",
+                "--depth",
+                "1",
+                GIT_URL.format(package=package),
+                str(repo),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        if result.returncode != 0:
+            return None
+        try:
+            return (repo / "debian" / "changelog").read_text(
+                encoding="utf-8", errors="replace"
+            )
+        except OSError:
+            return None
+
+
 def main() -> int:
     package = os.environ.get("PACKAGE", "").strip()
     if not package:
@@ -54,13 +84,15 @@ def main() -> int:
         with urllib.request.urlopen(url, timeout=20) as resp:
             text = resp.read().decode("utf-8", errors="replace")
     except urllib.error.HTTPError as e:
-        emit(
-            package=package,
-            source_url=url,
-            version="unknown",
-            error=f"http {e.code}",
-        )
-        return 0
+        text = fetch_changelog_from_git(package)
+        if text is None:
+            emit(
+                package=package,
+                source_url=url,
+                version="unknown",
+                error=f"http {e.code}",
+            )
+            return 0
     except (urllib.error.URLError, TimeoutError) as e:
         emit(package=package, source_url=url, version="unknown", error=f"network: {e}")
         return 0

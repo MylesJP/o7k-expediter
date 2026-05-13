@@ -1,0 +1,30 @@
+Format: 1.8
+Date: Tue, 14 Apr 2026 07:36:17 -0700
+Source: ironic-ui
+Binary: python3-ironic-ui
+Built-For-Profiles: derivative.ubuntu noudeb
+Architecture: all
+Version: 6.8.0-0ubuntu1
+Distribution: resolute
+Urgency: medium
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Changed-By: Myles Penner <myles.penner@canonical.com>
+Description:
+ python3-ironic-ui - bare metal hypervisor API for OpenStack - Dashboard plugin
+Changes:
+ ironic-ui (6.8.0-0ubuntu1) resolute; urgency=medium
+ .
+   * d/watch: restore pgpsigurlmangle for signed tarball
+   * d/u/signing-key.asc: update for gazpacho
+   * New upstream version 6.8.0
+   * New upstream release for OpenStack Gazpacho.
+Checksums-Sha1:
+ da78948313aae0ad4c99ddcb3598f63f1a5f511c 16816 ironic-ui_6.8.0-0ubuntu1_amd64.buildinfo
+ e751c155cccb87ff3cae33633d4d58f27c7d8d6e 5520 python3-ironic-ui_6.8.0-0ubuntu1_all.deb
+Checksums-Sha256:
+ ad8a87a4d298710e79273a4e46e9eeed5f66cfd81ad094531cb2858c7d0d63ff 16816 ironic-ui_6.8.0-0ubuntu1_amd64.buildinfo
+ fcb6dfb0ca704c388bd53f9048cb19e86b5c9412d2961e7c66e1189ea1ff5b37 5520 python3-ironic-ui_6.8.0-0ubuntu1_all.deb
+Files:
+ 354ff133390980dc5564fe0be83fa130 16816 python optional ironic-ui_6.8.0-0ubuntu1_amd64.buildinfo
+ a650b0a5c1ae71e26d0999d4a353464b 5520 python optional python3-ironic-ui_6.8.0-0ubuntu1_all.deb
+Original-Maintainer: PKG OpenStack <openstack-devel@lists.alioth.debian.org>

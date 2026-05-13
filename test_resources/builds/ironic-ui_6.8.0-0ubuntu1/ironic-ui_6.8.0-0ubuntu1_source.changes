@@ -1,0 +1,36 @@
+Format: 1.8
+Date: Tue, 14 Apr 2026 07:36:17 -0700
+Source: ironic-ui
+Built-For-Profiles: noudeb
+Architecture: source
+Version: 6.8.0-0ubuntu1
+Distribution: resolute
+Urgency: medium
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Changed-By: Myles Penner <myles.penner@canonical.com>
+Changes:
+ ironic-ui (6.8.0-0ubuntu1) resolute; urgency=medium
+ .
+   * d/watch: restore pgpsigurlmangle for signed tarball
+   * d/u/signing-key.asc: update for gazpacho
+   * New upstream version 6.8.0
+   * New upstream release for OpenStack Gazpacho.
+Checksums-Sha1:
+ 983be449585c3e146f27dcc1760558719f662c48 2064 ironic-ui_6.8.0-0ubuntu1.dsc
+ 9e2562cb5e4c5f799d805f3e9634789a66945fd1 160833 ironic-ui_6.8.0.orig.tar.gz
+ e2a21d30cd026ea764ae2c32c338a4e90d5dde5f 228 ironic-ui_6.8.0.orig.tar.gz.asc
+ 09de99b1a88ea6c1747c7953b234841add6de6c4 6372 ironic-ui_6.8.0-0ubuntu1.debian.tar.xz
+ 2ddb54718eed6b86c0b9b691deed8d6d41919820 7980 ironic-ui_6.8.0-0ubuntu1_source.buildinfo
+Checksums-Sha256:
+ 1348d7631b8d84c4f83f1d140e76b099bf64bafbd7a83c71725f714e7b4b499e 2064 ironic-ui_6.8.0-0ubuntu1.dsc
+ cd3b75107ba22fb50e5cd3a21389d5eca1352353ae5da6cd3d5ddce059baa1eb 160833 ironic-ui_6.8.0.orig.tar.gz
+ 5d34356572acb4a126f988eed39201ea02ca3d2484c4e5fece923f9954b48a83 228 ironic-ui_6.8.0.orig.tar.gz.asc
+ b6ca9aa0f238377ab12a0960d22ab64bfc6d2bc18ff94a4843ae76a69bf92bfc 6372 ironic-ui_6.8.0-0ubuntu1.debian.tar.xz
+ 9f7aa9d50f56b1436b86bb3b8fca236c754cc0f6929bccf92b311555ac7c3b09 7980 ironic-ui_6.8.0-0ubuntu1_source.buildinfo
+Files:
+ a9198e605464eaf0e246e193c562f96b 2064 python optional ironic-ui_6.8.0-0ubuntu1.dsc
+ deb6c5ccdf769bf191797e9fe20314a5 160833 python optional ironic-ui_6.8.0.orig.tar.gz
+ 09ccd84bf0ec87ef50f698905c3062e5 228 python optional ironic-ui_6.8.0.orig.tar.gz.asc
+ c18a3edb8c125e75b2d7ce7437c44aec 6372 python optional ironic-ui_6.8.0-0ubuntu1.debian.tar.xz
+ 39f9475077acaeb951fb3686f6f43a58 7980 python optional ironic-ui_6.8.0-0ubuntu1_source.buildinfo
+Original-Maintainer: PKG OpenStack <openstack-devel@lists.alioth.debian.org>

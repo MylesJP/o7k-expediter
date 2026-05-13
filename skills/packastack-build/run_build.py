@@ -47,10 +47,11 @@ def tail(path: Path, n: int = 80) -> str:
 def find_debs(apt_repo: Path, package: str) -> list[str]:
     if not apt_repo.exists():
         return []
+    python_binary = f"python3-{package.removeprefix('python-')}"
     return [
         str(p)
         for p in apt_repo.glob("*.deb")
-        if package in p.name or f"python3-{package}" in p.name
+        if package in p.name or f"python3-{package}" in p.name or python_binary in p.name
     ]
 
 

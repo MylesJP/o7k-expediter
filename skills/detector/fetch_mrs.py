@@ -24,7 +24,7 @@ import urllib.parse
 import urllib.request
 
 LP_API_BASE = "https://api.launchpad.net/devel"
-TARGET_REPO_PATH = "/~ubuntu-openstack-dev/+git/{package}"
+TARGET_REPO_PATH = "/~ubuntu-openstack-dev/ubuntu/+source/{package}/+git/{package}"
 
 # Pattern shared with fetch_packaged.py — kept inline rather than imported to
 # keep each pre-context script independently runnable.
@@ -93,7 +93,7 @@ def main() -> int:
     entries = data.get("entries") or []
     print(f"count: {len(entries)}")
 
-    repo_git_url = f"https://git.launchpad.net{target}"
+    repo_git_url = f"https://git.launchpad.net/~ubuntu-openstack-dev/ubuntu/+source/{package}"
     for i, mp in enumerate(entries, 1):
         source_branch = mp.get("source_git_path") or ""
         # source_git_path looks like "refs/heads/<branch>"; strip the prefix.

@@ -1,0 +1,20 @@
+id: "wp-cinder-20260513-001"
+status: in_progress
+current_stage: detection
+current_owner: packager
+
+target:
+  upstream_project: cinder
+  upstream_version: ""
+  openstack_series: hibiscus
+  ubuntu_release: noble
+  uca_pocket: hibiscus
+  trigger:
+    type: upstream_release
+    detected: "2026-05-13T12:00:00Z"
+    source: ""
+
+stamps: []
+history: []
+open_issues: []
+intervention: null

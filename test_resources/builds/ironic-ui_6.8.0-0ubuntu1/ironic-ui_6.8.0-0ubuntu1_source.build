@@ -1,0 +1,82 @@
+ dpkg-buildpackage -us -uc -ui -i -I -S -d
+dpkg-buildpackage: info: source package ironic-ui
+dpkg-buildpackage: info: source version 6.8.0-0ubuntu1
+dpkg-buildpackage: info: source distribution resolute
+dpkg-buildpackage: info: source changed by Myles Penner <myles.penner@canonical.com>
+ dpkg-source -i -I --before-build .
+dpkg-source: info: using options from ironic-ui-6.8.0/debian/source/options: --extend-diff-ignore=^[^/]*[.]egg-info/ --extend-diff-ignore=^[.]gitreview$ --extend-diff-ignore=^.launchpad.yaml
+ fakeroot debian/rules clean
+make: pyversions: No such file or directory
+py3versions: no X-Python3-Version in control file, using supported versions
+dh clean --buildsystem=pybuild --with python3,sphinxdoc
+   dh_auto_clean -O--buildsystem=pybuild
+I: pybuild base:311: python3.12 setup.py clean 
+/usr/lib/python3/dist-packages/setuptools/__init__.py:84: _DeprecatedInstaller: setuptools.installer and fetch_build_eggs are deprecated.
+!!
+
+        ********************************************************************************
+        Requirements should be satisfied by a PEP 517 installer.
+        If you are using pip, you can try `pip install --use-pep517`.
+        ********************************************************************************
+
+!!
+  dist.fetch_build_eggs(dist.setup_requires)
+/usr/lib/python3/dist-packages/setuptools/command/develop.py:40: EasyInstallDeprecationWarning: easy_install command is deprecated.
+!!
+
+        ********************************************************************************
+        Please avoid running ``setup.py`` and ``easy_install``.
+        Instead, use pypa/build, pypa/installer or other
+        standards-based tools.
+
+        See https://github.com/pypa/setuptools/issues/917 for details.
+        ********************************************************************************
+
+!!
+  easy_install.initialize_options(self)
+/usr/lib/python3/dist-packages/setuptools/_distutils/cmd.py:66: SetuptoolsDeprecationWarning: setup.py install is deprecated.
+!!
+
+        ********************************************************************************
+        Please avoid running ``setup.py`` directly.
+        Instead, use pypa/build, pypa/installer or other
+        standards-based tools.
+
+        See https://blog.ganssle.io/articles/2021/10/setup-py-deprecated.html for details.
+        ********************************************************************************
+
+!!
+  self.initialize_options()
+running clean
+removing '/home/myles.penner@canonical.com/.cache/packastack/build/ironic-ui/20260414-143601/build-output/ironic-ui-6.8.0/.pybuild/cpython3_3.12_ironic_ui/build' (and everything under it)
+'build/bdist.linux-x86_64' does not exist -- can't clean it
+'build/scripts-3.12' does not exist -- can't clean it
+   dh_autoreconf_clean -O--buildsystem=pybuild
+   debian/rules override_dh_clean
+make[1]: Entering directory '/home/myles.penner@canonical.com/.cache/packastack/build/ironic-ui/20260414-143601/build-output/ironic-ui-6.8.0'
+make[1]: pyversions: No such file or directory
+py3versions: no X-Python3-Version in control file, using supported versions
+dh_clean -O--buildsystem=pybuild
+make[1]: Leaving directory '/home/myles.penner@canonical.com/.cache/packastack/build/ironic-ui/20260414-143601/build-output/ironic-ui-6.8.0'
+ dpkg-source -i -I -b .
+dpkg-source: info: using options from ironic-ui-6.8.0/debian/source/options: --extend-diff-ignore=^[^/]*[.]egg-info/ --extend-diff-ignore=^[.]gitreview$ --extend-diff-ignore=^.launchpad.yaml
+dpkg-source: info: using source format '3.0 (quilt)'
+dpkg-source: info: verifying ./ironic-ui_6.8.0.orig.tar.gz.asc
+dpkg-source: info: building ironic-ui using existing ./ironic-ui_6.8.0.orig.tar.gz
+dpkg-source: info: building ironic-ui using existing ./ironic-ui_6.8.0.orig.tar.gz.asc
+dpkg-source: warning: ignoring deletion of directory ironic_ui.egg-info
+dpkg-source: info: building ironic-ui in ironic-ui_6.8.0-0ubuntu1.debian.tar.xz
+dpkg-source: info: building ironic-ui in ironic-ui_6.8.0-0ubuntu1.dsc
+ dpkg-genbuildinfo --build=source -O../ironic-ui_6.8.0-0ubuntu1_source.buildinfo
+ dpkg-genchanges --build=source -O../ironic-ui_6.8.0-0ubuntu1_source.changes
+dpkg-genchanges: info: including full source code in upload
+ dpkg-source -i -I --after-build .
+dpkg-source: info: using options from ironic-ui-6.8.0/debian/source/options: --extend-diff-ignore=^[^/]*[.]egg-info/ --extend-diff-ignore=^[.]gitreview$ --extend-diff-ignore=^.launchpad.yaml
+dpkg-buildpackage: info: source-only upload (original source is included)
+Use of uninitialized value $ENV{"DEBEMAIL"} in pattern match (m//) at /usr/bin/debuild line 1071.
+Now running lintian ironic-ui_6.8.0-0ubuntu1_source.changes ...
+E: ironic-ui source: source-is-missing [ironic_ui/static/dashboard/admin/ironic/driver-property.service.js]
+W: ironic-ui source: mismatched-override source-is-missing ironic_ui/static/dashboard/admin/ironic/base-node/base-node.service.js line length is 1173 characters (>512) [debian/source.lintian-overrides:3]
+W: ironic-ui source: sphinxdoc-but-no-sphinxdoc-depends [debian/rules]
+N: 0 hints overridden; 1 unused override
+Finished running lintian.
